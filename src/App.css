@@ -157,3 +157,52 @@ button + button {
     background-color: #2e7d32 !important;
   }
 }
+
+/* Fade-in animatie voor fietsdagen */
+@keyframes fadeIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.fietsdag abbr {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* Automatische donkere modus */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #121212;
+    color: #e0e0e0;
+  }
+  .app-container {
+    background: #1e1e1e;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  }
+  h2,
+  h3 {
+    color: #81c784;
+  }
+  button {
+    background: #388e3c;
+    color: white;
+  }
+  button:hover {
+    background: #2e7d32;
+  }
+  .fietsdag abbr {
+    background-color: #81c784 !important;
+    color: #121212 !important;
+  }
+  .pastday abbr {
+    background-color: #424242 !important;
+    color: #bdbdbd !important;
+  }
+  .react-calendar__tile:hover {
+    background-color: #2e7d32 !important;
+  }
+}
