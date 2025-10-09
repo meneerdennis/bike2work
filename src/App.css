@@ -96,19 +96,6 @@ button + button {
   animation: fadeIn 0.4s ease forwards;
 }
 
-.pastday abbr {
-  background-color: #e0e0e0 !important;
-  color: #757575 !important;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: auto;
-  width: 28px;
-  height: 28px;
-  line-height: 28px;
-}
-
 .react-calendar__tile:hover {
   background-color: #c8e6c9 !important;
 }
