@@ -2,7 +2,7 @@
   "name": "bike2work-web",
   "version": "0.1.0",
   "private": true,
-  "homepage": "hhtps://meneerdennis.github.io/bike2work",
+  "homepage": "https://meneerdennis.github.io/bike2work",
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
