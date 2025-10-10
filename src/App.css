@@ -60,6 +60,11 @@ button + button {
   background: #b6b6b6;
 }
 
+.react-calendar__tile--now {
+  background-color: rgb(170, 176, 255) !important; /* of een eigen kleur */
+  color: inherit !important;
+}
+
 .react-calendar__tile {
   padding: 12px 0;
   text-align: center;
@@ -102,7 +107,19 @@ button + button {
 
 /* Grafiek */
 .recharts-wrapper {
-  margin-top: 20px;
+  margin-top: auto;
+  display: block;
+  justify-content: center;
+  align-items: center;
+}
+
+.chart-container {
+  width: 80%;
+  margin: 0 auto;
+  background: white;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 8px;
 }
 
 /* Responsieve layout */

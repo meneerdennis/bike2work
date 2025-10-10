@@ -127,18 +127,20 @@ export default function App() {
         }}
       />
       <h3>Overzicht per maand</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          data={grafiekData()}
-          margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="maand" />
-          <YAxis allowDecimals={false} />
-          <Tooltip />
-          <Bar dataKey="aantal" fill="#82ca9d" />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="chart-container">
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart
+            data={grafiekData()}
+            margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="maand" />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Bar dataKey="aantal" fill="#82ca9d" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
