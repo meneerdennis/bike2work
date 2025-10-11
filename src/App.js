@@ -202,9 +202,6 @@ export default function App() {
             <button className="btn-primary" onClick={registreerVandaag}>
               Vandaag gefietst 🚴
             </button>
-            <button className="btn-danger" onClick={wisAlles}>
-              Alles wissen 🗑️
-            </button>
           </div>
 
           <h3>Kalender</h3>
@@ -235,6 +232,9 @@ export default function App() {
           </div>
 
           <div className="button-row">
+            <button className="btn-danger" onClick={wisAlles}>
+              Alles wissen 🗑️
+            </button>
             <button className="btn-blue" onClick={downloadData}>
               Download data 💾
             </button>
