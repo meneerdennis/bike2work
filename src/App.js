@@ -18,8 +18,6 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
@@ -41,27 +39,10 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-function App() {
+export default function App() {
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [wachtwoord, setWachtwoord] = useState("");
   const [fietsDagen, setFietsDagen] = useState([]);
-
-  // ✅ Bij inloggen of uitloggen data laden
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const ref = doc(db, "users", u.uid);
-        const snap = await getDoc(ref);
-        if (snap.exists()) setFietsDagen(snap.data().fietsDagen || []);
-        else await setDoc(ref, { fietsDagen: [] });
-      } else {
-        setFietsDagen([]);
-      }
-    });
-    return unsub;
-  }, []);
+  const [loading, setLoading] = useState(true);
 
   // Helper voor datum
   const getLokaleDatum = (d) =>
@@ -69,62 +50,65 @@ function App() {
       d.getDate()
     ).padStart(2, "0")}`;
 
-  // ✅ Vandaag registreren
-  const registreerVandaag = async () => {
+  // 🔹 Auth listener
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        const docRef = doc(db, "users", u.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setFietsDagen(docSnap.data().fietsDagen || []);
+        } else {
+          await setDoc(docRef, { fietsDagen: [] });
+          setFietsDagen([]);
+        }
+      } else {
+        setFietsDagen([]);
+      }
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  // 🔹 Data opslaan
+  const saveData = async (newData) => {
     if (!user) return;
-    const vandaag = new Date().toISOString().slice(0, 10);
-    if (!fietsDagen.includes(vandaag)) {
-      const nieuwe = [...fietsDagen, vandaag];
-      setFietsDagen(nieuwe);
-      await setDoc(doc(db, "users", user.uid), { fietsDagen: nieuwe });
-    }
+    setFietsDagen(newData);
+    await setDoc(doc(db, "users", user.uid), { fietsDagen: newData });
   };
 
-  // ✅ Alles wissen
+  // Vandaag registreren
+  const registreerVandaag = () => {
+    const dag = getLokaleDatum(new Date());
+    if (!fietsDagen.includes(dag)) saveData([...fietsDagen, dag]);
+  };
+
+  // Alles wissen
   const wisAlles = async () => {
-    if (!window.confirm("Alles wissen?")) return;
+    if (
+      !window.confirm("Weet je zeker dat je alle fietsdagen wilt verwijderen?")
+    )
+      return;
+    if (!user) return;
     await setDoc(doc(db, "users", user.uid), { fietsDagen: [] });
     setFietsDagen([]);
   };
 
-  // ✅ Inloggen via e-mail
-  const login = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, wachtwoord);
-    } catch {
-      if (window.confirm("Gebruiker niet gevonden. Nieuw account maken?")) {
-        await createUserWithEmailAndPassword(auth, email, wachtwoord);
-      }
-    }
+  // Kalender click
+  const toggleDag = (day) => {
+    const dag = getLokaleDatum(day);
+    if (fietsDagen.includes(dag)) saveData(fietsDagen.filter((d) => d !== dag));
+    else saveData([...fietsDagen, dag]);
   };
-
-  // ✅ Inloggen via Google
-  const loginMetGoogle = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      console.error("Fout bij Google login:", err);
-      alert("Fout bij Google login");
-    }
-  };
-
-  // ✅ Uitloggen
-  const logout = () => signOut(auth);
-
-  // // Kalender click
-  // const toggleDag = (day) => {
-  //   const dag = getLokaleDatum(day);
-  //   if (fietsDagen.includes(dag)) saveData(fietsDagen.filter((d) => d !== dag));
-  //   else saveData([...fietsDagen, dag]);
-  // };
 
   const isPast = (d) => getLokaleDatum(d) < getLokaleDatum(new Date());
 
+  // Groepeer per maand
   const grafiekData = () => {
-    // Groepeer per maand
     const maanden = {};
     fietsDagen.forEach((dag) => {
-      const [jaar, maand, _] = dag.split("-");
+      const [jaar, maand] = dag.split("-");
       const key = `${jaar}-${maand}`;
       maanden[key] = (maanden[key] || 0) + 1;
     });
@@ -140,7 +124,6 @@ function App() {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.download = `fietsdata_${new Date().toISOString().slice(0, 10)}.json`;
@@ -148,17 +131,15 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  // ✅ Importeer data uit JSON-bestand
+  // ✅ Importeer data
   const importData = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     const text = await file.text();
     try {
       const json = JSON.parse(text);
       if (json.fietsDagen && Array.isArray(json.fietsDagen)) {
-        setFietsDagen(json.fietsDagen);
-        localStorage.setItem("fietsDagen", JSON.stringify(json.fietsDagen));
+        await saveData(json.fietsDagen);
         alert(`✅ ${json.fietsDagen.length} fietsdagen geïmporteerd!`);
       } else {
         alert("❌ Ongeldig JSON-bestand.");
@@ -169,26 +150,27 @@ function App() {
     }
   };
 
+  // 🔹 Inloggen via Google
+  const loginMetGoogle = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error("Fout bij Google login:", err);
+      alert("Fout bij Google login");
+    }
+  };
+
+  // 🔹 Uitloggen
+  const logout = () => signOut(auth);
+
+  if (loading)
+    return <div style={{ textAlign: "center", marginTop: 50 }}>Laden...</div>;
+
   return (
     <div className="app-container">
       {!user ? (
         <div className="login-form">
           <h2>Login</h2>
-          <input
-            placeholder="E-mail"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Wachtwoord"
-            value={wachtwoord}
-            onChange={(e) => setWachtwoord(e.target.value)}
-          />
-          <button className="btn-blue" onClick={login}>
-            Login / Registreer
-          </button>
-          <div className="divider">of</div>
           <button className="btn-google" onClick={loginMetGoogle}>
             <img
               src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
@@ -205,6 +187,8 @@ function App() {
             Uitloggen
           </button>
 
+          <h2>Totaal gefietste dagen: {fietsDagen.length}</h2>
+
           <div className="button-row">
             <button className="btn-primary" onClick={registreerVandaag}>
               Vandaag gefietst 🚴
@@ -214,15 +198,54 @@ function App() {
             </button>
           </div>
 
-          <ul className="date-list">
-            {fietsDagen.map((d) => (
-              <li key={d}>{d}</li>
-            ))}
-          </ul>
+          <h3>Kalender</h3>
+          <Calendar
+            onClickDay={toggleDag}
+            tileClassName={({ date: d }) => {
+              const dag = getLokaleDatum(d);
+              if (fietsDagen.includes(dag)) return "fietsdag";
+              if (isPast(d) && !fietsDagen.includes(dag)) return "pastday";
+              return null;
+            }}
+          />
+
+          <h3>Overzicht per maand</h3>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={grafiekData()}
+                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="maand" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="aantal" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="button-row">
+            <button className="btn-blue" onClick={downloadData}>
+              Download data 💾
+            </button>
+
+            <input
+              type="file"
+              accept="application/json"
+              id="importInput"
+              style={{ display: "none" }}
+              onChange={importData}
+            />
+            <button
+              className="btn-purple"
+              onClick={() => document.getElementById("importInput").click()}
+            >
+              Importeer data 📂
+            </button>
+          </div>
         </>
       )}
     </div>
   );
 }
-
-export default App;
