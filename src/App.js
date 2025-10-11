@@ -191,10 +191,11 @@ export default function App() {
         </div>
       ) : (
         <>
-          <h1>Welkom, {user.displayName || user.email}</h1>
-          <button className="btn-purple" onClick={logout}>
-            Uitloggen
-          </button>
+          <div className="header">
+            <button className="btn-purple" onClick={logout}>
+              Uitloggen
+            </button>
+          </div>
 
           <h2>Totaal gefietste dagen: {fietsDagen.length}</h2>
 

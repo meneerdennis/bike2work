@@ -16,6 +16,12 @@ body {
   padding: 24px;
 }
 
+.header {
+  display: flex;
+  justify-content: right;
+  margin: auto;
+}
+
 /* Titels */
 h2,
 h3 {
