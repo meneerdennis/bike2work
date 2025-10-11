@@ -14,6 +14,13 @@ import "./App.css";
 
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 // 🔹 Firebase config
 const firebaseConfig = {
@@ -29,12 +36,13 @@ const firebaseConfig = {
 // 🔹 Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
 export default function App() {
+  const [user, setUser] = useState(null);
   const [fietsDagen, setFietsDagen] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const userId = "defaultUser"; // Voor nu: één gebruiker. Later kan dit dynamisch met login
 
   // Helper voor datum
   const getLokaleDatum = (d) =>
@@ -42,23 +50,32 @@ export default function App() {
       d.getDate()
     ).padStart(2, "0")}`;
 
-  // ✅ Data ophalen uit Firestore
+  // 🔹 Auth listener
   useEffect(() => {
-    const fetchData = async () => {
-      const docRef = doc(db, "users", userId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setFietsDagen(docSnap.data().fietsDagen || []);
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        const docRef = doc(db, "users", u.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setFietsDagen(docSnap.data().fietsDagen || []);
+        } else {
+          await setDoc(docRef, { fietsDagen: [] });
+          setFietsDagen([]);
+        }
+      } else {
+        setFietsDagen([]);
       }
       setLoading(false);
-    };
-    fetchData();
+    });
+    return unsub;
   }, []);
 
-  // ✅ Data opslaan naar Firestore
+  // 🔹 Data opslaan
   const saveData = async (newData) => {
+    if (!user) return;
     setFietsDagen(newData);
-    await setDoc(doc(db, "users", userId), { fietsDagen: newData });
+    await setDoc(doc(db, "users", user.uid), { fietsDagen: newData });
   };
 
   // Vandaag registreren
@@ -73,7 +90,8 @@ export default function App() {
       !window.confirm("Weet je zeker dat je alle fietsdagen wilt verwijderen?")
     )
       return;
-    await setDoc(doc(db, "users", userId), { fietsDagen: [] });
+    if (!user) return;
+    await setDoc(doc(db, "users", user.uid), { fietsDagen: [] });
     setFietsDagen([]);
   };
 
@@ -86,11 +104,11 @@ export default function App() {
 
   const isPast = (d) => getLokaleDatum(d) < getLokaleDatum(new Date());
 
+  // Groepeer per maand
   const grafiekData = () => {
-    // Groepeer per maand
     const maanden = {};
     fietsDagen.forEach((dag) => {
-      const [jaar, maand, _] = dag.split("-");
+      const [jaar, maand] = dag.split("-");
       const key = `${jaar}-${maand}`;
       maanden[key] = (maanden[key] || 0) + 1;
     });
@@ -106,7 +124,6 @@ export default function App() {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
     link.download = `fietsdata_${new Date().toISOString().slice(0, 10)}.json`;
@@ -114,17 +131,15 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  // ✅ Importeer data uit JSON-bestand
+  // ✅ Importeer data
   const importData = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     const text = await file.text();
     try {
       const json = JSON.parse(text);
       if (json.fietsDagen && Array.isArray(json.fietsDagen)) {
-        setFietsDagen(json.fietsDagen);
-        localStorage.setItem("fietsDagen", JSON.stringify(json.fietsDagen));
+        await saveData(json.fietsDagen);
         alert(`✅ ${json.fietsDagen.length} fietsdagen geïmporteerd!`);
       } else {
         alert("❌ Ongeldig JSON-bestand.");
@@ -135,66 +150,102 @@ export default function App() {
     }
   };
 
+  // 🔹 Inloggen via Google
+  const loginMetGoogle = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error("Fout bij Google login:", err);
+      alert("Fout bij Google login");
+    }
+  };
+
+  // 🔹 Uitloggen
+  const logout = () => signOut(auth);
+
   if (loading)
     return <div style={{ textAlign: "center", marginTop: 50 }}>Laden...</div>;
 
   return (
     <div className="app-container">
-      <h2>Totaal gefietste dagen: {fietsDagen.length}</h2>
+      {!user ? (
+        <div className="login-form">
+          <h2>Login</h2>
+          <button className="btn-google" onClick={loginMetGoogle}>
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="google-icon"
+            />
+            Log in met Google
+          </button>
+        </div>
+      ) : (
+        <>
+          <h1>Welkom, {user.displayName || user.email}</h1>
+          <button className="btn-purple" onClick={logout}>
+            Uitloggen
+          </button>
 
-      <div className="button-row">
-        <button className="btn-primary" onClick={registreerVandaag}>
-          Vandaag gefietst 🚴
-        </button>
-        <button className="btn-danger" onClick={wisAlles}>
-          Alles wissen 🗑️
-        </button>
-      </div>
+          <h2>Totaal gefietste dagen: {fietsDagen.length}</h2>
 
-      <h3>Kalender</h3>
-      <Calendar
-        onClickDay={toggleDag}
-        tileClassName={({ date: d }) => {
-          const dag = getLokaleDatum(d);
-          if (fietsDagen.includes(dag)) return "fietsdag";
-          if (isPast(d) && !fietsDagen.includes(dag)) return "pastday";
-          return null;
-        }}
-      />
-      <h3>Overzicht per maand</h3>
-      <div className="chart-container">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart
-            data={grafiekData()}
-            margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="maand" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="aantal" fill="#82ca9d" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="button-row">
-        <button className="btn-blue" onClick={downloadData}>
-          Download data 💾
-        </button>
+          <div className="button-row">
+            <button className="btn-primary" onClick={registreerVandaag}>
+              Vandaag gefietst 🚴
+            </button>
+            <button className="btn-danger" onClick={wisAlles}>
+              Alles wissen 🗑️
+            </button>
+          </div>
 
-        <input
-          type="file"
-          accept="application/json"
-          id="importInput"
-          style={{ display: "none" }}
-          onChange={importData}
-        />
-        <button
-          className="btn-purple"
-          onClick={() => document.getElementById("importInput").click()}
-        >
-          Importeer data 📂
-        </button>
-      </div>
+          <h3>Kalender</h3>
+          <Calendar
+            onClickDay={toggleDag}
+            tileClassName={({ date: d }) => {
+              const dag = getLokaleDatum(d);
+              if (fietsDagen.includes(dag)) return "fietsdag";
+              if (isPast(d) && !fietsDagen.includes(dag)) return "pastday";
+              return null;
+            }}
+          />
+
+          <h3>Overzicht per maand</h3>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={grafiekData()}
+                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="maand" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="aantal" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="button-row">
+            <button className="btn-blue" onClick={downloadData}>
+              Download data 💾
+            </button>
+
+            <input
+              type="file"
+              accept="application/json"
+              id="importInput"
+              style={{ display: "none" }}
+              onChange={importData}
+            />
+            <button
+              className="btn-purple"
+              onClick={() => document.getElementById("importInput").click()}
+            >
+              Importeer data 📂
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
