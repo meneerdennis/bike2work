@@ -99,6 +99,42 @@ export default function App() {
       .map(([maand, aantal]) => ({ maand, aantal }));
   };
 
+  // ✅ Download data als JSON
+  const downloadData = () => {
+    const data = { fietsDagen, laatsteUpdate: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fietsdata_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ✅ Importeer data uit JSON-bestand
+  const importData = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const text = await file.text();
+    try {
+      const json = JSON.parse(text);
+      if (json.fietsDagen && Array.isArray(json.fietsDagen)) {
+        setFietsDagen(json.fietsDagen);
+        localStorage.setItem("fietsDagen", JSON.stringify(json.fietsDagen));
+        alert(`✅ ${json.fietsDagen.length} fietsdagen geïmporteerd!`);
+      } else {
+        alert("❌ Ongeldig JSON-bestand.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Fout bij het inlezen van het bestand.");
+    }
+  };
+
   if (loading)
     return <div style={{ textAlign: "center", marginTop: 50 }}>Laden...</div>;
 
@@ -106,12 +142,11 @@ export default function App() {
     <div className="app-container">
       <h2>Totaal gefietste dagen: {fietsDagen.length}</h2>
 
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <button onClick={registreerVandaag}>Vandaag gefietst 🚴</button>
-        <button
-          onClick={wisAlles}
-          style={{ background: "#e53935", marginLeft: "10px" }}
-        >
+      <div className="button-row">
+        <button className="btn-primary" onClick={registreerVandaag}>
+          Vandaag gefietst 🚴
+        </button>
+        <button className="btn-danger" onClick={wisAlles}>
           Alles wissen 🗑️
         </button>
       </div>
@@ -140,6 +175,25 @@ export default function App() {
             <Bar dataKey="aantal" fill="#82ca9d" />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+      <div className="button-row">
+        <button className="btn-blue" onClick={downloadData}>
+          Download data 💾
+        </button>
+
+        <input
+          type="file"
+          accept="application/json"
+          id="importInput"
+          style={{ display: "none" }}
+          onChange={importData}
+        />
+        <button
+          className="btn-purple"
+          onClick={() => document.getElementById("importInput").click()}
+        >
+          Importeer data 📂
+        </button>
       </div>
     </div>
   );

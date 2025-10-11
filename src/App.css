@@ -44,10 +44,6 @@ button:active {
   transform: scale(0.97);
 }
 
-button + button {
-  margin-left: 10px;
-}
-
 /* Kalenderstijl */
 .react-calendar {
   width: 80%;
@@ -83,6 +79,13 @@ button + button {
   width: 28px;
   height: 28px;
   line-height: 28px;
+}
+
+.button-row {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
 }
 
 /* Animatie voor nieuwe fietsdagen */
