@@ -44,6 +44,15 @@ export default function App() {
   const [fietsDagen, setFietsDagen] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Set the browser tab title. If a user is logged in, show their name.
+  useEffect(() => {
+    if (user) {
+      document.title = `Bike2Work — ${user.displayName || user.email}`;
+    } else {
+      document.title = "Bike2Work — Inloggen";
+    }
+  }, [user]);
+
   // Helper voor datum
   const getLokaleDatum = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
