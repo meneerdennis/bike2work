@@ -14,6 +14,12 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
 
+## Firebase configuration
+
+This project expects a local `src/firebaseConfig.js` file that exports your Firebase configuration object as the default export.
+
+To create it, copy `src/firebaseConfig.example.js` to `src/firebaseConfig.js` and fill in your project's values. `src/firebaseConfig.js` is included in `.gitignore` so it won't be committed to GitHub.
+
 ### `npm test`
 
 Launches the test runner in the interactive watch mode.\

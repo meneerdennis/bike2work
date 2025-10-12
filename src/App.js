@@ -13,25 +13,24 @@ import "react-calendar/dist/Calendar.css";
 import "./App.css";
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  deleteUser,
 } from "firebase/auth";
 
-// 🔹 Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyAEKQwPgQ7oJ5Sr7N-sjxtGnKnMCFNkmgM",
-  authDomain: "bike2work-db0dc.firebaseapp.com",
-  projectId: "bike2work-db0dc",
-  storageBucket: "bike2work-db0dc.firebasestorage.app",
-  messagingSenderId: "640800387841",
-  appId: "1:640800387841:web:fe8725beb26dbedf5da100",
-  measurementId: "G-2DDSP1G2WR",
-};
+// 🔹 Firebase config (move your real config to `src/firebaseConfig.js` and keep it out of git)
+import firebaseConfig from "./firebaseConfig";
 
 // 🔹 Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -43,15 +42,9 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [fietsDagen, setFietsDagen] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Set the browser tab title. If a user is logged in, show their name.
-  useEffect(() => {
-    if (user) {
-      document.title = `Bike2Work — ${user.displayName || user.email}`;
-    } else {
-      document.title = "Bike2Work — Inloggen";
-    }
-  }, [user]);
+  const [afstand, setAfstand] = useState(5); // km enkele rit
+  const [vergoeding, setVergoeding] = useState(0.22);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Helper voor datum
   const getLokaleDatum = (d) =>
@@ -67,10 +60,16 @@ export default function App() {
         const docRef = doc(db, "users", u.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setFietsDagen(docSnap.data().fietsDagen || []);
+          const data = docSnap.data();
+          setFietsDagen(data.fietsDagen || []);
+          setAfstand(data.afstand || 5);
+          setVergoeding(data.vergoeding || 0.22);
         } else {
-          await setDoc(docRef, { fietsDagen: [] });
-          setFietsDagen([]);
+          await setDoc(docRef, {
+            fietsDagen: [],
+            afstand: 5,
+            vergoeding: 0.22,
+          });
         }
       } else {
         setFietsDagen([]);
@@ -84,7 +83,23 @@ export default function App() {
   const saveData = async (newData) => {
     if (!user) return;
     setFietsDagen(newData);
-    await setDoc(doc(db, "users", user.uid), { fietsDagen: newData });
+    await setDoc(
+      doc(db, "users", user.uid),
+      { fietsDagen: newData, afstand, vergoeding },
+      { merge: true }
+    );
+  };
+
+  // 🔹 Instellingen opslaan
+  const saveSettings = async () => {
+    if (!user) return;
+    await setDoc(
+      doc(db, "users", user.uid),
+      { afstand, vergoeding },
+      { merge: true }
+    );
+    alert("Instellingen opgeslagen ✅");
+    setShowSettings(false);
   };
 
   // Vandaag registreren
@@ -100,7 +115,11 @@ export default function App() {
     )
       return;
     if (!user) return;
-    await setDoc(doc(db, "users", user.uid), { fietsDagen: [] });
+    await setDoc(
+      doc(db, "users", user.uid),
+      { fietsDagen: [] },
+      { merge: true }
+    );
     setFietsDagen([]);
   };
 
@@ -126,9 +145,14 @@ export default function App() {
       .map(([maand, aantal]) => ({ maand, aantal }));
   };
 
-  // ✅ Download data als JSON
+  // ✅ Download data
   const downloadData = () => {
-    const data = { fietsDagen, laatsteUpdate: new Date().toISOString() };
+    const data = {
+      fietsDagen,
+      afstand,
+      vergoeding,
+      laatsteUpdate: new Date().toISOString(),
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
     });
@@ -149,6 +173,8 @@ export default function App() {
       const json = JSON.parse(text);
       if (json.fietsDagen && Array.isArray(json.fietsDagen)) {
         await saveData(json.fietsDagen);
+        if (json.afstand) setAfstand(json.afstand);
+        if (json.vergoeding) setVergoeding(json.vergoeding);
         alert(`✅ ${json.fietsDagen.length} fietsdagen geïmporteerd!`);
       } else {
         alert("❌ Ongeldig JSON-bestand.");
@@ -159,7 +185,6 @@ export default function App() {
     }
   };
 
-  // 🔹 Inloggen via Google
   const loginMetGoogle = async () => {
     try {
       await signInWithPopup(auth, provider);
@@ -169,8 +194,26 @@ export default function App() {
     }
   };
 
-  // 🔹 Uitloggen
   const logout = () => signOut(auth);
+
+  const verwijderAccount = async () => {
+    if (!user) return;
+    const bevestig = window.confirm(
+      "⚠️ Weet je zeker dat je je account en data wilt verwijderen?"
+    );
+    if (!bevestig) return;
+    try {
+      await deleteDoc(doc(db, "users", user.uid));
+      await deleteUser(user);
+      alert("✅ Account verwijderd.");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Kon account niet verwijderen.");
+    }
+  };
+
+  const totaalKm = fietsDagen.length * afstand * 2;
+  const totaalBedrag = (totaalKm * vergoeding).toFixed(2);
 
   if (loading)
     return <div style={{ textAlign: "center", marginTop: 50 }}>Laden...</div>;
@@ -191,13 +234,80 @@ export default function App() {
         </div>
       ) : (
         <>
-          <div className="header">
-            <button className="btn-purple" onClick={logout}>
-              Uitloggen
-            </button>
+          <div className="profile-card">
+            {user.photoURL && (
+              <img src={user.photoURL} alt="Profiel" className="profile-pic" />
+            )}
+            <div>
+              <h2>{user.displayName || "Onbekende gebruiker"}</h2>
+              <p>
+                <strong>Gefietste dagen:</strong> {fietsDagen.length}
+              </p>
+              <p>
+                <strong>Totaal km:</strong> {totaalKm} km
+              </p>
+              <p>
+                <strong>Vergoeding:</strong> € {totaalBedrag}
+              </p>
+            </div>
+            <div className="profile-buttons">
+              <button
+                className="btn-purple"
+                onClick={() => setShowSettings(!showSettings)}
+              >
+                Instellingen ⚙️
+              </button>
+            </div>
           </div>
 
-          <h2>Totaal gefietste dagen: {fietsDagen.length}</h2>
+          {showSettings && (
+            <div className="settings-panel">
+              <h3>Instellingen</h3>
+              <label>Afstand enkele rit (km):</label>
+              <input
+                type="number"
+                value={afstand}
+                onChange={(e) => setAfstand(Number(e.target.value))}
+              />
+              <label>Vergoeding per km (€):</label>
+              <input
+                type="number"
+                step="0.01"
+                value={vergoeding}
+                onChange={(e) => setVergoeding(Number(e.target.value))}
+              />
+              <button className="btn-blue" onClick={saveSettings}>
+                Opslaan 💾
+              </button>
+              <div className="button-row">
+                <button className="btn-danger" onClick={wisAlles}>
+                  Alles wissen 🗑️
+                </button>
+                <button className="btn-blue" onClick={downloadData}>
+                  Download data 💾
+                </button>
+                <input
+                  type="file"
+                  accept="application/json"
+                  id="importInput"
+                  style={{ display: "none" }}
+                  onChange={importData}
+                />
+                <button
+                  className="btn-purple"
+                  onClick={() => document.getElementById("importInput").click()}
+                >
+                  Importeer data 📂
+                </button>
+                <button className="btn-purple" onClick={logout}>
+                  Uitloggen
+                </button>
+                <button className="btn-danger" onClick={verwijderAccount}>
+                  Account verwijderen
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="button-row">
             <button className="btn-primary" onClick={registreerVandaag}>
@@ -230,29 +340,6 @@ export default function App() {
                 <Bar dataKey="aantal" fill="#82ca9d" />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-
-          <div className="button-row">
-            <button className="btn-danger" onClick={wisAlles}>
-              Alles wissen 🗑️
-            </button>
-            <button className="btn-blue" onClick={downloadData}>
-              Download data 💾
-            </button>
-
-            <input
-              type="file"
-              accept="application/json"
-              id="importInput"
-              style={{ display: "none" }}
-              onChange={importData}
-            />
-            <button
-              className="btn-purple"
-              onClick={() => document.getElementById("importInput").click()}
-            >
-              Importeer data 📂
-            </button>
           </div>
         </>
       )}
