@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   BarChart,
   Bar,
@@ -215,6 +215,51 @@ export default function App() {
   const totaalKm = fietsDagen.length * afstand * 2;
   const totaalBedrag = (totaalKm * vergoeding).toFixed(2);
 
+  // Tab state: 'calendar' or 'overview'
+  const [activeTab, setActiveTab] = useState("calendar");
+  const calendarTabRef = useRef(null);
+  const overviewTabRef = useRef(null);
+
+  const onTabKeyDown = (e, tab) => {
+    const key = e.key;
+    const LEFT = "ArrowLeft";
+    const RIGHT = "ArrowRight";
+    const HOME = "Home";
+    const END = "End";
+    const NEXT = tab === "calendar" ? overviewTabRef : calendarTabRef;
+    const PREV = tab === "calendar" ? overviewTabRef : calendarTabRef;
+
+    if (key === "Enter" || key === " ") {
+      e.preventDefault();
+      setActiveTab(tab);
+      return;
+    }
+
+    if (key === RIGHT) {
+      e.preventDefault();
+      overviewTabRef.current?.focus();
+      return;
+    }
+
+    if (key === LEFT) {
+      e.preventDefault();
+      calendarTabRef.current?.focus();
+      return;
+    }
+
+    if (key === HOME) {
+      e.preventDefault();
+      calendarTabRef.current?.focus();
+      return;
+    }
+
+    if (key === END) {
+      e.preventDefault();
+      overviewTabRef.current?.focus();
+      return;
+    }
+  };
+
   if (loading)
     return <div style={{ textAlign: "center", marginTop: 50 }}>Laden...</div>;
 
@@ -317,32 +362,77 @@ export default function App() {
             </button>
           </div>
 
-          <h3>Kalender</h3>
-          <Calendar
-            onClickDay={toggleDag}
-            tileClassName={({ date: d }) => {
-              const dag = getLokaleDatum(d);
-              if (fietsDagen.includes(dag)) return "fietsdag";
-              if (isPast(d) && !fietsDagen.includes(dag)) return "pastday";
-              return null;
-            }}
-          />
-
-          <h3>Overzicht per maand</h3>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={grafiekData()}
-                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="maand" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="aantal" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="tabs" role="tablist" aria-label="Weergave kiezen">
+            <button
+              ref={calendarTabRef}
+              id="tab-calendar"
+              role="tab"
+              aria-selected={activeTab === "calendar"}
+              aria-controls="panel-calendar"
+              tabIndex={activeTab === "calendar" ? 0 : -1}
+              className={`tab-btn ${activeTab === "calendar" ? "active" : ""}`}
+              onClick={() => setActiveTab("calendar")}
+              onKeyDown={(e) => onTabKeyDown(e, "calendar")}
+            >
+              Kalender
+            </button>
+            <button
+              ref={overviewTabRef}
+              id="tab-overview"
+              role="tab"
+              aria-selected={activeTab === "overview"}
+              aria-controls="panel-overview"
+              tabIndex={activeTab === "overview" ? 0 : -1}
+              className={`tab-btn ${activeTab === "overview" ? "active" : ""}`}
+              onClick={() => setActiveTab("overview")}
+              onKeyDown={(e) => onTabKeyDown(e, "overview")}
+            >
+              Overzicht
+            </button>
           </div>
+
+          {activeTab === "calendar" && (
+            <div
+              id="panel-calendar"
+              role="tabpanel"
+              aria-labelledby="tab-calendar"
+            >
+              <h3>Kalender</h3>
+              <Calendar
+                onClickDay={toggleDag}
+                tileClassName={({ date: d }) => {
+                  const dag = getLokaleDatum(d);
+                  if (fietsDagen.includes(dag)) return "fietsdag";
+                  if (isPast(d) && !fietsDagen.includes(dag)) return "pastday";
+                  return null;
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === "overview" && (
+            <div
+              id="panel-overview"
+              role="tabpanel"
+              aria-labelledby="tab-overview"
+            >
+              <h3>Overzicht per maand</h3>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={grafiekData()}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="maand" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="aantal" fill="#82ca9d" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
