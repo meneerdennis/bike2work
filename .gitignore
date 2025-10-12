@@ -10,11 +10,16 @@
 
 # production
 /build
+/build/*
+*.map
 
 # misc
 .DS_Store
 .env.local
-.env.local
+
+# Ignore env files for Create React App
+.env
+.env.*
 
 # Ignore the local Firebase config file containing API keys
 src/firebaseConfig.js

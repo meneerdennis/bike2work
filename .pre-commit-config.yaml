@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: detect-secrets-local
+        name: Detect common secrets (local)
+        entry: bash scripts/check_for_secrets.sh
+        language: script
+        files: ""
+        stages: [commit]

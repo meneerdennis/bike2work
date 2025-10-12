@@ -49,6 +49,43 @@ cp src/firebaseConfig.example.js src/firebaseConfig.js
 
 Let op: `src/firebaseConfig.js` staat in `.gitignore` zodat je keys niet naar de repository worden gepusht.
 
+Alternatief (aanbevolen): gebruik environment-variabelen (Create React App)
+
+- Kopieer het voorbeeldbestand `.env.example` naar `.env.local` in de projectroot:
+
+```bash
+copy .env.example .env.local
+# of op mac/linux: cp .env.example .env.local
+```
+
+- Vul je Firebase-waarden in `.env.local`. De app leest variabelen met het `REACT_APP_` prefix.
+
+- Start de dev-server of build zoals gewoonlijk. `.env.local` staat in `.gitignore` en wordt niet gecommit.
+
+## Voorkom per ongeluk committen van secrets
+
+We hebben een eenvoudige pre-commit hook toegevoegd die gestage bestanden scant op veelvoorkomende secretpatronen (API-keys, private key headers). Om dit lokaal te gebruiken:
+
+Installeer `pre-commit` (Python):
+
+```bash
+pip install pre-commit
+```
+
+Installeer hooks in je repository:
+
+```bash
+pre-commit install
+```
+
+Vanaf nu voert `pre-commit` bij elke commit het script `scripts/check_for_secrets.sh` uit en blokkeert de commit als er vermoedelijke secrets worden gevonden.
+
+Je kunt de hook handmatig testen op alle bestanden:
+
+```bash
+pre-commit run --all-files
+```
+
 ## Deployment
 
 Build de app en deploy de inhoud van de `build/` map naar je hostingprovider:
