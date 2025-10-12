@@ -88,13 +88,16 @@ button:active {
 }
 
 .button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   margin-top: 20px;
   margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
   align-items: center;
   justify-content: space-evenly;
+}
+.btn-logout {
+  grid-column: 1 / span 2;
 }
 
 .divider {
@@ -358,4 +361,9 @@ button:active {
 .btn-purple {
   display: flex;
   align-items: flex-start;
+}
+
+.button {
+  display: flex;
+  justify-content: center;
 }

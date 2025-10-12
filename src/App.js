@@ -255,7 +255,7 @@ export default function App() {
                 className="btn-purple"
                 onClick={() => setShowSettings(!showSettings)}
               >
-                Instellingen ⚙️
+                ⚙️
               </button>
             </div>
           </div>
@@ -280,12 +280,10 @@ export default function App() {
                 Opslaan 💾
               </button>
               <div className="button-row">
-                <button className="btn-purple" onClick={logout}>
+                <button className="btn-logout" onClick={logout}>
                   Uitloggen
                 </button>
-                <button className="btn-danger" onClick={wisAlles}>
-                  Alle fietsdagen wissen 🗑️
-                </button>
+
                 <button className="btn-blue" onClick={downloadData}>
                   Download data 💾
                 </button>
@@ -296,11 +294,15 @@ export default function App() {
                   style={{ display: "none" }}
                   onChange={importData}
                 />
+
                 <button
                   className="btn-purple"
                   onClick={() => document.getElementById("importInput").click()}
                 >
                   Importeer data 📂
+                </button>
+                <button className="btn-danger" onClick={wisAlles}>
+                  Alle fietsdagen wissen 🗑️
                 </button>
                 <button className="btn-danger" onClick={verwijderAccount}>
                   Account verwijderen
@@ -309,7 +311,7 @@ export default function App() {
             </div>
           )}
 
-          <div className="button-row">
+          <div className="button">
             <button className="btn-primary" onClick={registreerVandaag}>
               🚴 Vandaag gefietst 🚴
             </button>
