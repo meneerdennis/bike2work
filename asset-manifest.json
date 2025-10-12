@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/bike2work/static/css/main.9683c9dc.css",
-    "main.js": "/bike2work/static/js/main.976a1afd.js",
+    "main.css": "/bike2work/static/css/main.1931ac97.css",
+    "main.js": "/bike2work/static/js/main.93382702.js",
     "static/js/453.23684fa0.chunk.js": "/bike2work/static/js/453.23684fa0.chunk.js",
     "index.html": "/bike2work/index.html",
-    "main.9683c9dc.css.map": "/bike2work/static/css/main.9683c9dc.css.map",
-    "main.976a1afd.js.map": "/bike2work/static/js/main.976a1afd.js.map",
+    "main.1931ac97.css.map": "/bike2work/static/css/main.1931ac97.css.map",
+    "main.93382702.js.map": "/bike2work/static/js/main.93382702.js.map",
     "453.23684fa0.chunk.js.map": "/bike2work/static/js/453.23684fa0.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.9683c9dc.css",
-    "static/js/main.976a1afd.js"
+    "static/css/main.1931ac97.css",
+    "static/js/main.93382702.js"
   ]
 }
