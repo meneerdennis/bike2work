@@ -280,8 +280,11 @@ export default function App() {
                 Opslaan 💾
               </button>
               <div className="button-row">
+                <button className="btn-purple" onClick={logout}>
+                  Uitloggen
+                </button>
                 <button className="btn-danger" onClick={wisAlles}>
-                  Alles wissen 🗑️
+                  Alle fietsdagen wissen 🗑️
                 </button>
                 <button className="btn-blue" onClick={downloadData}>
                   Download data 💾
@@ -299,9 +302,6 @@ export default function App() {
                 >
                   Importeer data 📂
                 </button>
-                <button className="btn-purple" onClick={logout}>
-                  Uitloggen
-                </button>
                 <button className="btn-danger" onClick={verwijderAccount}>
                   Account verwijderen
                 </button>
@@ -311,7 +311,7 @@ export default function App() {
 
           <div className="button-row">
             <button className="btn-primary" onClick={registreerVandaag}>
-              Vandaag gefietst 🚴
+              🚴 Vandaag gefietst 🚴
             </button>
           </div>
 
