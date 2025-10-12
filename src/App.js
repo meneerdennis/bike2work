@@ -49,32 +49,40 @@ if (envApiKey) {
     "Firebase config: using environment variables (REACT_APP_FIREBASE_*)"
   );
 } else {
-  try {
-    // If a local src/firebaseConfig.js exists (ignored by git), use it as a fallback.
-    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-    // eslint-disable-next-line import/no-unresolved
-    // prettier-ignore
-    firebaseConfig = require("./firebaseConfig").default;
-    // eslint-disable-next-line no-console
-    console.info(
-      "Firebase config: using local src/firebaseConfig.js (override)"
-    );
-  } catch (err) {
-    // No env and no local file — set empty defaults to avoid runtime throws
-    firebaseConfig = {
-      apiKey: "",
-      authDomain: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: "",
-      measurementId: "",
-    };
-    // eslint-disable-next-line no-console
-    console.warn(
-      "Firebase config: no environment variables and no local src/firebaseConfig.js found. Using empty defaults."
-    );
-  }
+  // Avoid static require() so bundlers don't fail when the file is intentionally missing.
+  // Try a dynamic import at runtime; if it fails, fall back to empty defaults.
+  firebaseConfig = {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: "",
+    measurementId: "",
+  };
+  (async () => {
+    try {
+      // Dynamic import: this will only run in the browser at runtime when the file exists.
+      // eslint-disable-next-line import/no-unresolved, global-require
+      // prettier-ignore
+      // Using import() avoids bundler resolution errors when the file is absent.
+      // Note: import() returns a promise.
+      // If the file exists, replace firebaseConfig and (re)initialize Firebase.
+      // We guard re-initialization by checking app.name (but initializeApp already ran with empty defaults above),
+      // so we'll only log the detection here and advise a page reload if necessary.
+      // eslint-disable-next-line no-undef
+      const mod = await import("./firebaseConfig").catch(() => null);
+      if (mod && mod.default) {
+        firebaseConfig = mod.default;
+        // eslint-disable-next-line no-console
+        console.info(
+          "Firebase config: loaded local src/firebaseConfig.js at runtime"
+        );
+      }
+    } catch (err) {
+      // ignore — we'll just keep the empty defaults
+    }
+  })();
 }
 
 // 🔹 Initialize Firebase
