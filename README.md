@@ -1,76 +1,74 @@
-# Getting Started with Create React App
+# Bike2Work — Fietsregistratie (React)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Korte projectbeschrijving
 
-## Available Scripts
+Kleine React-app om je gefietste dagen bij te houden, een maandoverzicht te tonen en een vergoeding te berekenen.
 
-In the project directory, you can run:
+Belangrijkste features
 
-### `npm start`
+- Google-authenticatie via Firebase
+- Dagen registreren via de kalender of de knop "Vandaag gefietst"
+- Maandoverzicht in een staafdiagram (Recharts)
+- Instellingen voor enkele-rit afstand en vergoeding per km
+- Data export/import (JSON)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Geschikt voor lokale ontwikkeling en eenvoudige deployment (bijv. Netlify, Vercel of GitHub Pages).
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Snelle start
 
-## Firebase configuration
+- Dependencies installeren
 
-This project expects a local `src/firebaseConfig.js` file that exports your Firebase configuration object as the default export.
+```bash
+yarn install
+# of: npm install
+```
 
-To create it, copy `src/firebaseConfig.example.js` to `src/firebaseConfig.js` and fill in your project's values. `src/firebaseConfig.js` is included in `.gitignore` so it won't be committed to GitHub.
+- Lokale Firebase-config aanmaken (zie sectie hieronder)
 
-### `npm test`
+- Ontwikkelserver starten
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+yarn start
+# of: npm start
+```
 
-### `npm run build`
+- Open de app in je browser: [http://localhost:3000](http://localhost:3000)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Firebase configuratie
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+De app gebruikt Firebase (Authentication en Firestore). Maak een lokaal bestand `src/firebaseConfig.js` dat het configuratie-object als default export bevat.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Er is een voorbeeldbestand aanwezig: `src/firebaseConfig.example.js`.
 
-### `npm run eject`
+Maak je lokale config door het voorbeeld te kopiëren en je eigen waarden in te vullen:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+cp src/firebaseConfig.example.js src/firebaseConfig.js
+# of: kopieer handmatig en vul waarden in
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Let op: `src/firebaseConfig.js` staat in `.gitignore` zodat je keys niet naar de repository worden gepusht.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Deployment
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Build de app en deploy de inhoud van de `build/` map naar je hostingprovider:
 
-## Learn More
+```bash
+yarn build
+# of: npm run build
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Als je Firebase Hosting gebruikt, configureer `firebase.json` en gebruik `firebase deploy`.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Projectstructuur (kort)
 
-### Code Splitting
+- `src/` — broncode
+- `src/App.js` — hoofdcomponent en gebruikersinterface
+- `src/firebaseConfig.example.js` — voorbeeldconfig (in repo)
+- `src/firebaseConfig.js` — lokale config (NIET in repo)
+- `public/` — statische bestanden
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Tips & privacy
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Firebase client keys zijn niet volledig gevoelig, maar behandel ze als secrets en deel ze niet publiek.
+- Overweeg environment-variabelen of een secret manager voor productie.
