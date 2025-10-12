@@ -29,24 +29,13 @@ import {
   deleteUser,
 } from "firebase/auth";
 
-// 🔹 Firebase config loader: prefer local `src/firebaseConfig.js`, otherwise use CRA env vars.
+// 🔹 Firebase config loader: prefer CRA environment variables; fall back to local `src/firebaseConfig.js` if env not present.
 let firebaseConfig;
-try {
-  // If a local src/firebaseConfig.js exists (ignored by git), prefer it.
-  // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-  // (we use require inside try/catch intentionally)
-  // require will be bundled away by bundlers if the file doesn't exist.
-  // This keeps the flexibility to use either approach.
-  // If you prefer only env-based, remove the local file import.
-  // Note: In TypeScript or strict ESM setups this pattern may need adjustment.
-  // eslint-disable-next-line no-undef
-  // eslint-disable-next-line import/no-unresolved
-  // prettier-ignore
-  firebaseConfig = require("./firebaseConfig").default;
-} catch (err) {
+const envApiKey = process.env.REACT_APP_FIREBASE_API_KEY;
+if (envApiKey) {
   // Build config from environment variables (Create React App REACT_APP_*)
   firebaseConfig = {
-    apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "",
+    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
     authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "",
     projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "",
     storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "",
@@ -54,6 +43,38 @@ try {
     appId: process.env.REACT_APP_FIREBASE_APP_ID || "",
     measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "",
   };
+  // Helpful runtime log for debugging which source is used
+  // eslint-disable-next-line no-console
+  console.info(
+    "Firebase config: using environment variables (REACT_APP_FIREBASE_*)"
+  );
+} else {
+  try {
+    // If a local src/firebaseConfig.js exists (ignored by git), use it as a fallback.
+    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+    // eslint-disable-next-line import/no-unresolved
+    // prettier-ignore
+    firebaseConfig = require("./firebaseConfig").default;
+    // eslint-disable-next-line no-console
+    console.info(
+      "Firebase config: using local src/firebaseConfig.js (override)"
+    );
+  } catch (err) {
+    // No env and no local file — set empty defaults to avoid runtime throws
+    firebaseConfig = {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: "",
+      measurementId: "",
+    };
+    // eslint-disable-next-line no-console
+    console.warn(
+      "Firebase config: no environment variables and no local src/firebaseConfig.js found. Using empty defaults."
+    );
+  }
 }
 
 // 🔹 Initialize Firebase
