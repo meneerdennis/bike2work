@@ -23,7 +23,8 @@ import {
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   deleteUser,
@@ -130,6 +131,29 @@ export default function App() {
       setLoading(false);
     });
     return unsub;
+  }, []);
+
+  // 🔹 Handle redirect sign-in result (useful to surface errors after redirect)
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          // eslint-disable-next-line no-console
+          console.info("Redirect sign-in completed for:", result.user.uid);
+        }
+      } catch (err) {
+        // Surface redirect errors clearly so you can debug permissions/config issues.
+        // eslint-disable-next-line no-console
+        console.error("Redirect sign-in error:", err);
+        try {
+          // eslint-disable-next-line no-alert
+          alert(`Sign-in failed: ${err.message}`);
+        } catch (e) {
+          // ignore if alert is blocked
+        }
+      }
+    })();
   }, []);
 
   // 🔹 Data opslaan
@@ -240,7 +264,8 @@ export default function App() {
 
   const loginMetGoogle = async () => {
     try {
-      await signInWithPopup(auth, provider);
+      // Use redirect flow to avoid popup close issues on GitHub Pages/other hosts
+      await signInWithRedirect(auth, provider);
     } catch (err) {
       console.error("Fout bij Google login:", err);
       alert("Fout bij Google login");
