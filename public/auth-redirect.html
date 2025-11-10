@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Firebase Auth Redirect Handler</title>
+  </head>
+  <body>
+    <script>
+      // This handler receives the auth redirect from Google OAuth and completes the sign-in flow.
+      // It then redirects back to the main app with the result.
+
+      (async () => {
+        try {
+          // Get the Firebase instance from the main app context
+          const message = {
+            type: "FIREBASE_AUTH_RESULT",
+            data: window.location.href,
+          };
+
+          // Send the result back to the main app window
+          if (window.opener) {
+            window.opener.postMessage(message, window.location.origin);
+            window.close();
+          } else {
+            // If not opened via popup (rare for redirect flow), store in sessionStorage
+            sessionStorage.setItem(
+              "firebaseAuthRedirectResult",
+              window.location.href
+            );
+            window.location.href = "/bike2work/";
+          }
+        } catch (error) {
+          console.error("Auth redirect error:", error);
+          if (window.opener) {
+            window.opener.postMessage(
+              {
+                type: "FIREBASE_AUTH_ERROR",
+                error: error.message,
+              },
+              window.location.origin
+            );
+            window.close();
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

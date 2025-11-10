@@ -23,8 +23,7 @@ import {
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   setPersistence,
   browserLocalPersistence,
   signOut,
@@ -96,7 +95,6 @@ const provider = new GoogleAuthProvider();
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [redirectError, setRedirectError] = useState(null);
   const [lastFirestoreError, setLastFirestoreError] = useState(null);
   const [fietsDagen, setFietsDagen] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,36 +108,10 @@ export default function App() {
       d.getDate()
     ).padStart(2, "0")}`;
 
-  // 🔹 Auth: handle redirect result first, then attach auth listener
+  // 🔹 Auth: attach auth state listener for popup-based sign-in
   useEffect(() => {
     let unsub = () => {};
     (async () => {
-      try {
-        // Do NOT swallow errors here. If getRedirectResult rejects (for example
-        // due to an unauthorized domain), we want to see the error and show it
-        // in the debug banner. Previously a .catch(() => null) hid that error.
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          // eslint-disable-next-line no-console
-          console.info("Redirect sign-in completed for:", result.user.uid);
-          setRedirectError(null);
-        } else {
-          // No redirect result - that's OK if the page wasn't reached via a redirect
-          // eslint-disable-next-line no-console
-          console.info("getRedirectResult: no redirect result");
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("Redirect sign-in error:", err);
-        setRedirectError(err && err.message ? err.message : String(err));
-        try {
-          // eslint-disable-next-line no-alert
-          alert(`Sign-in failed: ${err.message}`);
-        } catch (e) {
-          // ignore if alert is blocked
-        }
-      }
-
       unsub = onAuthStateChanged(auth, async (u) => {
         // eslint-disable-next-line no-console
         console.info(
@@ -303,16 +275,17 @@ export default function App() {
 
   const loginMetGoogle = async () => {
     try {
-      // Ensure auth persistence is set to local storage so the session survives the redirect
+      // Set persistence to local storage so the session survives page reloads
       try {
         await setPersistence(auth, browserLocalPersistence);
       } catch (e) {
         // eslint-disable-next-line no-console
         console.warn("Could not set persistence, continuing:", e);
       }
-      // Use redirect flow to avoid popup close issues on GitHub Pages/other hosts
-      await signInWithRedirect(auth, provider);
+      // Use popup-based auth which works perfectly on GitHub Pages
+      await signInWithPopup(auth, provider);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Fout bij Google login:", err);
       alert("Fout bij Google login");
     }
@@ -352,8 +325,6 @@ export default function App() {
     const RIGHT = "ArrowRight";
     const HOME = "Home";
     const END = "End";
-    const NEXT = tab === "calendar" ? overviewTabRef : calendarTabRef;
-    const PREV = tab === "calendar" ? overviewTabRef : calendarTabRef;
 
     if (key === "Enter" || key === " ") {
       e.preventDefault();
@@ -391,58 +362,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Debug banner: shows auth state, redirect errors and last Firestore error */}
-      <div
-        style={{
-          position: "fixed",
-          top: 8,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2000,
-          background: "rgba(0,0,0,0.8)",
-          color: "#fff",
-          padding: "8px 12px",
-          borderRadius: 6,
-          fontSize: 13,
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <strong>Auth:</strong>{" "}
-          {user ? `${user.uid} (${user.email || "no-email"})` : "null"}
-        </div>
-        {redirectError && (
-          <div>
-            <strong>RedirectErr:</strong> {redirectError}
-          </div>
-        )}
-        {lastFirestoreError && (
-          <div>
-            <strong>FirestoreErr:</strong> {lastFirestoreError}
-          </div>
-        )}
-        {(redirectError || lastFirestoreError) && (
-          <button
-            onClick={() => {
-              setRedirectError(null);
-              setLastFirestoreError(null);
-            }}
-            style={{
-              marginLeft: 8,
-              background: "#ff6b6b",
-              border: "none",
-              color: "white",
-              padding: "4px 8px",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Clear
-          </button>
-        )}
-      </div>
       {!user ? (
         <div className="login-form">
           <h2>Login</h2>
