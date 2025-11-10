@@ -4,6 +4,8 @@
 // If you prefer literal values for local development, replace the empty strings
 // below but ensure this file remains in your local .gitignore.
 
+// NOTE: Do NOT hardcode API keys here. This file will be embedded in the build.
+// Instead, use environment variables (REACT_APP_FIREBASE_*) from .env.local or CI/CD.
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "",
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "",

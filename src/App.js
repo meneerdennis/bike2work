@@ -25,6 +25,8 @@ import {
   GoogleAuthProvider,
   signInWithRedirect,
   getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
   signOut,
   onAuthStateChanged,
   deleteUser,
@@ -94,6 +96,8 @@ const provider = new GoogleAuthProvider();
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [redirectError, setRedirectError] = useState(null);
+  const [lastFirestoreError, setLastFirestoreError] = useState(null);
   const [fietsDagen, setFietsDagen] = useState([]);
   const [loading, setLoading] = useState(true);
   const [afstand, setAfstand] = useState(5); // km enkele rit
@@ -106,46 +110,28 @@ export default function App() {
       d.getDate()
     ).padStart(2, "0")}`;
 
-  // 🔹 Auth listener
+  // 🔹 Auth: handle redirect result first, then attach auth listener
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const docRef = doc(db, "users", u.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setFietsDagen(data.fietsDagen || []);
-          setAfstand(data.afstand || 5);
-          setVergoeding(data.vergoeding || 0.22);
-        } else {
-          await setDoc(docRef, {
-            fietsDagen: [],
-            afstand: 5,
-            vergoeding: 0.22,
-          });
-        }
-      } else {
-        setFietsDagen([]);
-      }
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
-
-  // 🔹 Handle redirect sign-in result (useful to surface errors after redirect)
-  useEffect(() => {
+    let unsub = () => {};
     (async () => {
       try {
+        // Do NOT swallow errors here. If getRedirectResult rejects (for example
+        // due to an unauthorized domain), we want to see the error and show it
+        // in the debug banner. Previously a .catch(() => null) hid that error.
         const result = await getRedirectResult(auth);
         if (result && result.user) {
           // eslint-disable-next-line no-console
           console.info("Redirect sign-in completed for:", result.user.uid);
+          setRedirectError(null);
+        } else {
+          // No redirect result - that's OK if the page wasn't reached via a redirect
+          // eslint-disable-next-line no-console
+          console.info("getRedirectResult: no redirect result");
         }
       } catch (err) {
-        // Surface redirect errors clearly so you can debug permissions/config issues.
         // eslint-disable-next-line no-console
         console.error("Redirect sign-in error:", err);
+        setRedirectError(err && err.message ? err.message : String(err));
         try {
           // eslint-disable-next-line no-alert
           alert(`Sign-in failed: ${err.message}`);
@@ -153,30 +139,83 @@ export default function App() {
           // ignore if alert is blocked
         }
       }
+
+      unsub = onAuthStateChanged(auth, async (u) => {
+        // eslint-disable-next-line no-console
+        console.info(
+          "onAuthStateChanged, user:",
+          u ? { uid: u.uid, email: u.email } : null
+        );
+        setUser(u);
+        if (u) {
+          try {
+            const docRef = doc(db, "users", u.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setFietsDagen(data.fietsDagen || []);
+              setAfstand(data.afstand || 5);
+              setVergoeding(data.vergoeding || 0.22);
+            } else {
+              await setDoc(docRef, {
+                fietsDagen: [],
+                afstand: 5,
+                vergoeding: 0.22,
+              });
+            }
+          } catch (e) {
+            // Log Firestore read errors (e.g., permissions)
+            // eslint-disable-next-line no-console
+            console.error("Error fetching user doc:", e);
+            setLastFirestoreError(e && e.message ? e.message : String(e));
+            setFietsDagen([]);
+          }
+        } else {
+          setFietsDagen([]);
+        }
+        setLoading(false);
+      });
     })();
+
+    return () => unsub();
   }, []);
 
   // 🔹 Data opslaan
   const saveData = async (newData) => {
     if (!user) return;
     setFietsDagen(newData);
-    await setDoc(
-      doc(db, "users", user.uid),
-      { fietsDagen: newData, afstand, vergoeding },
-      { merge: true }
-    );
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        { fietsDagen: newData, afstand, vergoeding },
+        { merge: true }
+      );
+      setLastFirestoreError(null);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("Error saving user doc:", e);
+      setLastFirestoreError(e && e.message ? e.message : String(e));
+    }
   };
 
   // 🔹 Instellingen opslaan
   const saveSettings = async () => {
     if (!user) return;
-    await setDoc(
-      doc(db, "users", user.uid),
-      { afstand, vergoeding },
-      { merge: true }
-    );
-    alert("Instellingen opgeslagen ✅");
-    setShowSettings(false);
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        { afstand, vergoeding },
+        { merge: true }
+      );
+      setLastFirestoreError(null);
+      alert("Instellingen opgeslagen ✅");
+      setShowSettings(false);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("Error saving settings:", e);
+      setLastFirestoreError(e && e.message ? e.message : String(e));
+      alert("Kon instellingen niet opslaan.");
+    }
   };
 
   // Vandaag registreren
@@ -264,6 +303,13 @@ export default function App() {
 
   const loginMetGoogle = async () => {
     try {
+      // Ensure auth persistence is set to local storage so the session survives the redirect
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("Could not set persistence, continuing:", e);
+      }
       // Use redirect flow to avoid popup close issues on GitHub Pages/other hosts
       await signInWithRedirect(auth, provider);
     } catch (err) {
@@ -284,9 +330,11 @@ export default function App() {
       await deleteDoc(doc(db, "users", user.uid));
       await deleteUser(user);
       alert("✅ Account verwijderd.");
+      setLastFirestoreError(null);
     } catch (err) {
       console.error(err);
       alert("❌ Kon account niet verwijderen.");
+      setLastFirestoreError(err && err.message ? err.message : String(err));
     }
   };
 
@@ -343,6 +391,58 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Debug banner: shows auth state, redirect errors and last Firestore error */}
+      <div
+        style={{
+          position: "fixed",
+          top: 8,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2000,
+          background: "rgba(0,0,0,0.8)",
+          color: "#fff",
+          padding: "8px 12px",
+          borderRadius: 6,
+          fontSize: 13,
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <strong>Auth:</strong>{" "}
+          {user ? `${user.uid} (${user.email || "no-email"})` : "null"}
+        </div>
+        {redirectError && (
+          <div>
+            <strong>RedirectErr:</strong> {redirectError}
+          </div>
+        )}
+        {lastFirestoreError && (
+          <div>
+            <strong>FirestoreErr:</strong> {lastFirestoreError}
+          </div>
+        )}
+        {(redirectError || lastFirestoreError) && (
+          <button
+            onClick={() => {
+              setRedirectError(null);
+              setLastFirestoreError(null);
+            }}
+            style={{
+              marginLeft: 8,
+              background: "#ff6b6b",
+              border: "none",
+              color: "white",
+              padding: "4px 8px",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
       {!user ? (
         <div className="login-form">
           <h2>Login</h2>
