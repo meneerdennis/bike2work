@@ -1,2 +1,0 @@
-"use strict";(self.webpackChunkbike2work_web=self.webpackChunkbike2work_web||[]).push([[729],{1729:(e,b,a)=>{a.r(b),a.d(b,{default:()=>d});const d={apiKey:"AIzaSyBMKt0rrG07HIiEJfK7Tlqfs0KI-SqgHdA",authDomain:"bike2work-db0dc.firebaseapp.com",projectId:"bike2work-db0dc",storageBucket:"bike2work-db0dc.firebasestorage.app",messagingSenderId:"640800387841",appId:"1:640800387841:web:fe8725beb26dbedf5da100",measurementId:"G-2DDSP1G2WR"}}}]);
-//# sourceMappingURL=729.66131e9a.chunk.js.map
