@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/bike2work/static/css/main.1931ac97.css",
-    "main.js": "/bike2work/static/js/main.710e1fea.js",
-    "static/js/729.2436af8f.chunk.js": "/bike2work/static/js/729.2436af8f.chunk.js",
-    "static/js/453.23684fa0.chunk.js": "/bike2work/static/js/453.23684fa0.chunk.js",
+    "main.js": "/bike2work/static/js/main.57385582.js",
+    "static/js/729.f67a490d.chunk.js": "/bike2work/static/js/729.f67a490d.chunk.js",
+    "static/js/453.133aaf3f.chunk.js": "/bike2work/static/js/453.133aaf3f.chunk.js",
     "index.html": "/bike2work/index.html",
     "main.1931ac97.css.map": "/bike2work/static/css/main.1931ac97.css.map",
-    "main.710e1fea.js.map": "/bike2work/static/js/main.710e1fea.js.map",
-    "729.2436af8f.chunk.js.map": "/bike2work/static/js/729.2436af8f.chunk.js.map",
-    "453.23684fa0.chunk.js.map": "/bike2work/static/js/453.23684fa0.chunk.js.map"
+    "main.57385582.js.map": "/bike2work/static/js/main.57385582.js.map",
+    "729.f67a490d.chunk.js.map": "/bike2work/static/js/729.f67a490d.chunk.js.map",
+    "453.133aaf3f.chunk.js.map": "/bike2work/static/js/453.133aaf3f.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.1931ac97.css",
-    "static/js/main.710e1fea.js"
+    "static/js/main.57385582.js"
   ]
 }
